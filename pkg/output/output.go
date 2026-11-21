@@ -8,6 +8,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/lc/gau/v2/pkg/providers"
 	"github.com/valyala/bytebufferpool"
 )
 
@@ -15,11 +16,12 @@ type JSONResult struct {
 	Url string `json:"url"`
 }
 
-func WriteURLs(writer io.Writer, results <-chan string, blacklistMap mapset.Set[string], RemoveParameters bool) error {
+func WriteURLs(writer io.Writer, results <-chan providers.Result, blacklistMap mapset.Set[string], RemoveParameters bool) error {
 	lastURL := mapset.NewThreadUnsafeSet[string]()
 	for result := range results {
+		rawURL := result.URL
 		buf := bytebufferpool.Get()
-		u, err := url.Parse(result)
+		u, err := url.Parse(rawURL)
 		if err != nil {
 			continue
 		}
@@ -35,7 +37,7 @@ func WriteURLs(writer io.Writer, results <-chan string, blacklistMap mapset.Set[
 			lastURL.Add(u.Host + u.Path)
 		}
 
-		buf.B = append(buf.B, []byte(result)...)
+		buf.B = append(buf.B, []byte(rawURL)...)
 		buf.B = append(buf.B, "\n"...)
 		_, err = writer.Write(buf.B)
 		if err != nil {
@@ -46,11 +48,12 @@ func WriteURLs(writer io.Writer, results <-chan string, blacklistMap mapset.Set[
 	return nil
 }
 
-func WriteURLsJSON(writer io.Writer, results <-chan string, blacklistMap mapset.Set[string], RemoveParameters bool) {
+func WriteURLsJSON(writer io.Writer, results <-chan providers.Result, blacklistMap mapset.Set[string], RemoveParameters bool) {
 	var jr JSONResult
 	enc := jsoniter.NewEncoder(writer)
 	for result := range results {
-		u, err := url.Parse(result)
+		rawURL := result.URL
+		u, err := url.Parse(rawURL)
 		if err != nil {
 			continue
 		}
@@ -58,7 +61,7 @@ func WriteURLsJSON(writer io.Writer, results <-chan string, blacklistMap mapset.
 		if ext != "" && blacklistMap.Contains(ext) {
 			continue
 		}
-		jr.Url = result
+		jr.Url = rawURL
 		if err := enc.Encode(jr); err != nil {
 			// todo: handle this error
 			continue

@@ -1,0 +1,58 @@
+{
+  "id": 2,
+  "started_at": "2026-11-21T21:51:52.969281335Z",
+  "finished_at": "2026-11-21T21:51:52.969281365Z",
+  "providers": [
+    "otx",
+    "wayback"
+  ],
+  "targets": [
+    "example.com"
+  ],
+  "failures": [
+    {
+      "provider": "wayback",
+      "domain": "example.com",
+      "error": "connection reset by peer"
+    }
+  ],
+  "entries": [
+    {
+      "id": "https://api.example.com/v2/orders",
+      "domain": "example.com",
+      "sample": "https://api.example.com/v2/orders",
+      "providers": [
+        "otx"
+      ]
+    },
+    {
+      "id": "https://example.com/home",
+      "domain": "example.com",
+      "sample": "https://example.com/home",
+      "providers": [
+        "otx"
+      ]
+    },
+    {
+      "id": "https://example.com/new-post",
+      "domain": "example.com",
+      "sample": "https://example.com/new-post",
+      "providers": [
+        "otx"
+      ]
+    },
+    {
+      "id": "https://example.com/search",
+      "query_keys": [
+        "lang",
+        "p",
+        "q"
+      ],
+      "domain": "example.com",
+      "sample": "https://example.com/search?q=dog\u0026p=1\u0026lang=en",
+      "providers": [
+        "otx"
+      ]
+    }
+  ]
+}

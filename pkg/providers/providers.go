@@ -15,6 +15,23 @@ type Provider interface {
 	Name() string
 }
 
+// Result is a collected URL together with the provenance needed by the
+// optional history/diff feature. The Provider interface itself is unchanged:
+// the runner attaches the tags while relaying strings from a provider-scoped
+// channel onto the shared results channel.
+type Result struct {
+	URL      string
+	Provider string
+	Domain   string
+}
+
+// Failure records a provider fetch for a domain that ended with an error.
+type Failure struct {
+	Provider string
+	Domain   string
+	Error    string
+}
+
 type URLScan struct {
 	Host   string
 	APIKey string
@@ -33,4 +50,9 @@ type Config struct {
 	JSON              bool
 	URLScan           URLScan
 	OTX               string
+	// HistoryDir/HistoryRounds/HistoryImport drive the optional round-to-round
+	// diff feature. Zero values keep the feature fully disabled.
+	HistoryDir    string
+	HistoryRounds int
+	HistoryImport string
 }

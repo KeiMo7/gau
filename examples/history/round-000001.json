@@ -1,0 +1,54 @@
+{
+  "id": 1,
+  "started_at": "2026-11-21T21:51:52.969133752Z",
+  "finished_at": "2026-11-21T21:51:52.969133832Z",
+  "providers": [
+    "otx",
+    "wayback"
+  ],
+  "targets": [
+    "example.com"
+  ],
+  "entries": [
+    {
+      "id": "https://api.example.com/v1/users",
+      "query_keys": [
+        "id"
+      ],
+      "domain": "example.com",
+      "sample": "https://api.example.com/v1/users?id=1",
+      "providers": [
+        "wayback"
+      ]
+    },
+    {
+      "id": "https://example.com/home",
+      "domain": "example.com",
+      "sample": "https://example.com/home",
+      "providers": [
+        "otx",
+        "wayback"
+      ]
+    },
+    {
+      "id": "https://example.com/old-page",
+      "domain": "example.com",
+      "sample": "https://example.com/old-page",
+      "providers": [
+        "wayback"
+      ]
+    },
+    {
+      "id": "https://example.com/search",
+      "query_keys": [
+        "p",
+        "q"
+      ],
+      "domain": "example.com",
+      "sample": "https://example.com/search?q=cat\u0026p=1",
+      "providers": [
+        "wayback"
+      ]
+    }
+  ]
+}

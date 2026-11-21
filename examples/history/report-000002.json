@@ -1,0 +1,85 @@
+{
+  "previous_round": 1,
+  "current_round": 2,
+  "added": [
+    {
+      "id": "https://api.example.com/v2/orders",
+      "domain": "example.com",
+      "sample": "https://api.example.com/v2/orders",
+      "providers": [
+        "otx"
+      ]
+    },
+    {
+      "id": "https://example.com/new-post",
+      "domain": "example.com",
+      "sample": "https://example.com/new-post",
+      "providers": [
+        "otx"
+      ]
+    }
+  ],
+  "removed": [],
+  "persistent": [
+    {
+      "id": "https://example.com/home",
+      "domain": "example.com",
+      "sample": "https://example.com/home",
+      "providers": [
+        "otx"
+      ]
+    }
+  ],
+  "changed": [
+    {
+      "id": "https://example.com/search",
+      "domain": "example.com",
+      "sample": "https://example.com/search?q=dog\u0026p=1\u0026lang=en",
+      "added_keys": [
+        "lang"
+      ]
+    }
+  ],
+  "suppressed": [
+    {
+      "entry": {
+        "id": "https://api.example.com/v1/users",
+        "query_keys": [
+          "id"
+        ],
+        "domain": "example.com",
+        "sample": "https://api.example.com/v1/users?id=1",
+        "providers": [
+          "wayback"
+        ]
+      },
+      "failed_providers": [
+        "wayback"
+      ]
+    },
+    {
+      "entry": {
+        "id": "https://example.com/old-page",
+        "domain": "example.com",
+        "sample": "https://example.com/old-page",
+        "providers": [
+          "wayback"
+        ]
+      },
+      "failed_providers": [
+        "wayback"
+      ]
+    }
+  ],
+  "added_by_domain": {
+    "example.com": 2
+  },
+  "current_round_failures": [
+    {
+      "provider": "wayback",
+      "domain": "example.com",
+      "error": "connection reset by peer"
+    }
+  ],
+  "baseline": false
+}

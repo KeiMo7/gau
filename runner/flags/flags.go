@@ -40,6 +40,15 @@ type Config struct {
 	URLScan           URLScanConfig     `mapstructure:"urlscan"`
 	OTX               string            `mapstructure:"otx"`
 	Outfile           string            // output file to write to
+	// HistoryDir enables round-to-round diffing when non-empty. Rounds are
+	// persisted as one JSON document per round inside this directory.
+	HistoryDir string `mapstructure:"history"`
+	// HistoryRounds limits how many previous rounds are read for trend
+	// aggregation; 0 means every round on disk.
+	HistoryRounds int `mapstructure:"history_rounds"`
+	// HistoryImport imports a legacy gau output file (plain text or --json
+	// lines) as the baseline round and exits without fetching anything.
+	HistoryImport string `mapstructure:"history_import"`
 }
 
 func (c *Config) ProviderConfig() (*providers.Config, error) {
@@ -80,6 +89,10 @@ func (c *Config) ProviderConfig() (*providers.Config, error) {
 			APIKey: c.URLScan.APIKey,
 		},
 		OTX: c.OTX,
+
+		HistoryDir:    c.HistoryDir,
+		HistoryRounds: c.HistoryRounds,
+		HistoryImport: c.HistoryImport,
 	}
 
 	log.SetLevel(log.ErrorLevel)
@@ -110,6 +123,11 @@ func New() *Options {
 	pflag.Bool("fp", false, "remove different parameters of the same endpoint")
 	pflag.Bool("verbose", false, "show verbose output")
 	pflag.Bool("json", false, "output as json")
+
+	// history / diff flags
+	pflag.String("history", "", "directory for persisting collection rounds; enables round-to-round diffing when set")
+	pflag.Int("history-rounds", 0, "number of most recent rounds to read for trend aggregation (0 = all rounds)")
+	pflag.String("history-import", "", "import a legacy gau output file (plain text or --json lines) as the baseline round into --history and exit")
 
 	// filter flags
 	pflag.StringSlice("mc", []string{}, "list of status codes to match")
@@ -185,6 +203,9 @@ func (o *Options) DefaultConfig() *Config {
 		Blacklist:         []string{},
 		JSON:              false,
 		Outfile:           "",
+		HistoryDir:        "",
+		HistoryRounds:     0,
+		HistoryImport:     "",
 	}
 
 	o.getFlagValues(c)
@@ -204,6 +225,9 @@ func (o *Options) getFlagValues(c *Config) {
 	blacklist := o.viper.GetStringSlice("blacklist")
 	subs := o.viper.GetBool("subs")
 	fp := o.viper.GetBool("fp")
+	historyDir := o.viper.GetString("history")
+	historyRounds := o.viper.GetInt("history-rounds")
+	historyImport := o.viper.GetString("history-import")
 
 	if version {
 		fmt.Printf("gau version: %s\n", providers.Version)
@@ -246,6 +270,16 @@ func (o *Options) getFlagValues(c *Config) {
 
 	c.JSON = json
 	c.Verbose = verbose
+
+	// history flags are only meaningful when explicitly provided; an empty
+	// string leaves the feature disabled and preserves default behavior.
+	if historyDir != "" {
+		c.HistoryDir = historyDir
+	}
+	c.HistoryRounds = historyRounds
+	if historyImport != "" {
+		c.HistoryImport = historyImport
+	}
 
 	// get filter flags
 	mc := o.viper.GetStringSlice("mc")
