@@ -80,13 +80,23 @@ func (c *Client) Fetch(ctx context.Context, domain string, results chan string) 
 			for sc.Scan() {
 				var res apiResponse
 				if err := jsoniter.Unmarshal(sc.Bytes(), &res); err != nil {
-					return fmt.Errorf("failed to decode commoncrawl result:  %s", err)
+					// Degradation rule: a malformed record is skipped and
+					// counted (it reaches the output layer as an empty/raw
+					// mismatch and the provenance collector counts URLs that
+					// fail normalization) instead of aborting the whole
+					// provider. Connection-level failures above still return
+					// an error and mark the provider failed.
+					logrus.WithField("provider", Name).Warnf("skipping malformed commoncrawl record: %s", err)
+					continue
 				}
 				if res.Error != "" {
 					return fmt.Errorf("received an error from commoncrawl: %s", res.Error)
 				}
 
 				results <- res.URL
+			}
+			if err := sc.Err(); err != nil {
+				return fmt.Errorf("failed to read commoncrawl response page %d: %s", page, err)
 			}
 		}
 	}

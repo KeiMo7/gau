@@ -6,6 +6,11 @@ parameters = false
 providers = ["wayback","commoncrawl","otx","urlscan"]
 blacklist = ["ttf","woff","svg","png","jpg"]
 json = false
+# URL provenance (source tracking) — off by default; see README "URL provenance".
+# Config-file spellings differ from the CLI flags (no hyphens):
+#   withsources = false
+#   provstate = ""            # default "$HOME/.gau-prov-state.json", "none" disables
+#   provfaillimit = 3
 
 [urlscan]
   apikey = ""

@@ -31,6 +31,16 @@ type Config struct {
 	Blacklist         mapset.Set[string]
 	Output            string
 	JSON              bool
-	URLScan           URLScan
-	OTX               string
+	// WithSources enables provenance mode: per-URL source tracking,
+	// cross-run state and the circuit breaker. When false the tool behaves
+	// exactly as before this feature existed.
+	WithSources bool
+	// ProvState is the path of the cross-run provenance state file; "none"
+	// disables persistence (the run still reports sources, but no history).
+	ProvState string
+	// ProvFailLimit is the consecutive-failure threshold after which a
+	// provider is skipped with an explicit warning.
+	ProvFailLimit uint
+	URLScan       URLScan
+	OTX           string
 }

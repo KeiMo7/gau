@@ -67,6 +67,10 @@ func (c *Client) Fetch(ctx context.Context, domain string, results chan string) 
 			// output results
 			// Slicing as [1:] to skip first result by default
 			for _, entry := range result[1:] {
+				if len(entry) == 0 {
+					logrus.WithField("provider", Name).Warn("skipping malformed wayback record: empty row")
+					continue
+				}
 				results <- entry[0]
 			}
 		}

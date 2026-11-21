@@ -37,6 +37,9 @@ type Config struct {
 	Providers         []string          `mapstructure:"providers"`
 	Blacklist         []string          `mapstructure:"blacklist"`
 	JSON              bool              `mapstructure:"json"`
+	WithSources       bool              `mapstructure:"withsources"`
+	ProvState         string            `mapstructure:"provstate"`
+	ProvFailLimit     uint              `mapstructure:"provfaillimit"`
 	URLScan           URLScanConfig     `mapstructure:"urlscan"`
 	OTX               string            `mapstructure:"otx"`
 	Outfile           string            // output file to write to
@@ -72,9 +75,12 @@ func (c *Config) ProviderConfig() (*providers.Config, error) {
 			},
 			Dial: dialer,
 		},
-		Providers: c.Providers,
-		Output:    c.Outfile,
-		JSON:      c.JSON,
+		Providers:     c.Providers,
+		Output:        c.Outfile,
+		JSON:          c.JSON,
+		WithSources:   c.WithSources,
+		ProvState:     c.ProvState,
+		ProvFailLimit: c.ProvFailLimit,
 		URLScan: providers.URLScan{
 			Host:   c.URLScan.Host,
 			APIKey: c.URLScan.APIKey,
@@ -110,6 +116,9 @@ func New() *Options {
 	pflag.Bool("fp", false, "remove different parameters of the same endpoint")
 	pflag.Bool("verbose", false, "show verbose output")
 	pflag.Bool("json", false, "output as json")
+	pflag.Bool("with-sources", false, "provenance mode: retain every URL's providing sources, raw forms and cross-run history (implies cross-run state via --prov-state)")
+	pflag.String("prov-state", "", "path of the provenance state file (default $HOME/.gau-prov-state.json); use 'none' to disable persistence")
+	pflag.Uint("prov-fail-limit", 3, "consecutive provider failures after which the provider is skipped for the run with a warning")
 
 	// filter flags
 	pflag.StringSlice("mc", []string{}, "list of status codes to match")
@@ -184,6 +193,9 @@ func (o *Options) DefaultConfig() *Config {
 		Providers:         []string{"wayback", "commoncrawl", "otx", "urlscan"},
 		Blacklist:         []string{},
 		JSON:              false,
+		WithSources:       false,
+		ProvState:         "",
+		ProvFailLimit:     3,
 		Outfile:           "",
 	}
 
@@ -196,6 +208,30 @@ func (o *Options) getFlagValues(c *Config) {
 	version := o.viper.GetBool("version")
 	verbose := o.viper.GetBool("verbose")
 	json := o.viper.GetBool("json")
+	// Flags use kebab-case while TOML keys use the mapstructure spellings
+	// (withsources/provstate/provfaillimit); viper does not treat the two as
+	// the same key. An explicitly passed flag wins; otherwise the config-file
+	// value is used only when that key is actually present, so flag defaults
+	// are preserved when it is absent.
+	settings := o.viper.AllSettings()
+	withSources := o.viper.GetBool("with-sources")
+	if !pflag.CommandLine.Changed("with-sources") {
+		if v, ok := settings["withsources"].(bool); ok {
+			withSources = v
+		}
+	}
+	provState := o.viper.GetString("prov-state")
+	if !pflag.CommandLine.Changed("prov-state") {
+		if v, ok := settings["provstate"].(string); ok {
+			provState = v
+		}
+	}
+	provFailLimit := o.viper.GetUint("prov-fail-limit")
+	if !pflag.CommandLine.Changed("prov-fail-limit") {
+		if _, ok := settings["provfaillimit"]; ok {
+			provFailLimit = o.viper.GetUint("provfaillimit")
+		}
+	}
 	retries := o.viper.GetUint("retries")
 	proxy := o.viper.GetString("proxy")
 	outfile := o.viper.GetString("o")
@@ -246,6 +282,16 @@ func (o *Options) getFlagValues(c *Config) {
 
 	c.JSON = json
 	c.Verbose = verbose
+	c.WithSources = withSources
+	c.ProvFailLimit = provFailLimit
+	c.ProvState = provState
+	if withSources && provState == "" {
+		if home, err := os.UserHomeDir(); err == nil {
+			c.ProvState = filepath.Join(home, ".gau-prov-state.json")
+		} else {
+			c.ProvState = "none"
+		}
+	}
 
 	// get filter flags
 	mc := o.viper.GetStringSlice("mc")

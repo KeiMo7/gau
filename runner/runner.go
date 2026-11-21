@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/lc/gau/v2/pkg/provenance"
 	"github.com/lc/gau/v2/pkg/providers"
 	"github.com/lc/gau/v2/pkg/providers/commoncrawl"
 	"github.com/lc/gau/v2/pkg/providers/otx"
@@ -80,6 +81,67 @@ func (r *Runner) worker(ctx context.Context, workChan chan Work, results chan st
 			if err := work.Do(ctx, results); err != nil {
 				logrus.WithField("provider", work.provider.Name()).Warnf("%s - %v", work.domain, err)
 			}
+		}
+	}
+}
+
+// StartWithSources runs the same worker pool as Start but routes every
+// emitted URL through the provenance collector instead of a bare string
+// channel. Provider interfaces and their Fetch implementations are untouched:
+// a per-work adapter goroutine converts chan string observations into
+// structured (domain, provider, rawURL) records, so provenance cannot be
+// flattened into a string in an intermediate layer.
+func (r *Runner) StartWithSources(ctx context.Context, workChan chan Work, collector *provenance.Collector) {
+	for i := uint(0); i < r.threads; i++ {
+		r.Add(1)
+		go func() {
+			defer r.Done()
+			r.provenanceWorker(ctx, workChan, collector)
+		}()
+	}
+}
+
+func (r *Runner) provenanceWorker(ctx context.Context, workChan chan Work, collector *provenance.Collector) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case work, ok := <-workChan:
+			if !ok {
+				return
+			}
+			domain, provider := work.domain, work.provider.Name()
+
+			// Circuit breaker: a provider that failed failLimit consecutive
+			// runs is skipped this run; the skip is recorded as an explicit
+			// status distinct from a fresh failure. The alert is emitted at
+			// Error level so it remains visible at the default log level.
+			if skip, reason := collector.ShouldSkip(domain, provider); skip {
+				logrus.WithField("provider", provider).Error(reason)
+				continue
+			}
+
+			// One channel + one adapter per work item: observations from
+			// different providers can never be attributed to the wrong source,
+			// regardless of goroutine scheduling.
+			raw := make(chan string)
+			var adapterWg sync.WaitGroup
+			adapterWg.Add(1)
+			go func() {
+				defer adapterWg.Done()
+				for u := range raw {
+					collector.Observe(domain, provider, u)
+				}
+			}()
+
+			err := work.provider.Fetch(ctx, domain, raw)
+			close(raw)
+			adapterWg.Wait() // all observations are recorded before Complete
+
+			if err != nil {
+				logrus.WithField("provider", provider).Errorf("%s - %v", domain, err)
+			}
+			collector.Complete(domain, provider, err != nil, err)
 		}
 	}
 }
