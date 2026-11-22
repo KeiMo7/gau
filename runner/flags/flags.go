@@ -32,6 +32,7 @@ type Config struct {
 	Timeout           uint              `mapstructure:"timeout"`
 	Verbose           bool              `mapstructure:"verbose"`
 	MaxRetries        uint              `mapstructure:"retries"`
+	MaxPages          uint              `mapstructure:"maxpages"`
 	IncludeSubdomains bool              `mapstructure:"subdomains"`
 	RemoveParameters  bool              `mapstructure:"parameters"`
 	Providers         []string          `mapstructure:"providers"`
@@ -64,6 +65,7 @@ func (c *Config) ProviderConfig() (*providers.Config, error) {
 		Threads:           c.Threads,
 		Timeout:           c.Timeout,
 		MaxRetries:        c.MaxRetries,
+		MaxPages:          c.MaxPages,
 		IncludeSubdomains: c.IncludeSubdomains,
 		RemoveParameters:  c.RemoveParameters,
 		Client: &fasthttp.Client{
@@ -103,6 +105,7 @@ func New() *Options {
 	pflag.Uint("threads", 1, "number of workers to spawn")
 	pflag.Uint("timeout", 45, "timeout (in seconds) for HTTP client")
 	pflag.Uint("retries", 0, "retries for HTTP client")
+	pflag.Uint("maxpages", 1000, "maximum number of pages to fetch per provider")
 	pflag.String("proxy", "", "http proxy to use")
 	pflag.StringSlice("blacklist", []string{}, "list of extensions to skip")
 	pflag.StringSlice("providers", []string{}, "list of providers to use (wayback,commoncrawl,otx,urlscan)")
@@ -179,6 +182,7 @@ func (o *Options) DefaultConfig() *Config {
 		Threads:           1,
 		Verbose:           false,
 		MaxRetries:        5,
+		MaxPages:          1000,
 		IncludeSubdomains: false,
 		RemoveParameters:  false,
 		Providers:         []string{"wayback", "commoncrawl", "otx", "urlscan"},
@@ -234,6 +238,10 @@ func (o *Options) getFlagValues(c *Config) {
 
 	if retries > 0 {
 		c.MaxRetries = retries
+	}
+
+	if maxPages := o.viper.GetUint("maxpages"); maxPages > 0 {
+		c.MaxPages = maxPages
 	}
 
 	if subs {

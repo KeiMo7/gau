@@ -24,6 +24,7 @@ type Config struct {
 	Threads           uint
 	Timeout           uint
 	MaxRetries        uint
+	MaxPages          uint
 	IncludeSubdomains bool
 	RemoveParameters  bool
 	Client            *fasthttp.Client
